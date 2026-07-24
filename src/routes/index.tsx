@@ -387,12 +387,12 @@ function FAQ() {
 }
 
 function Marquee() {
-  const items = ["Stripe", "Linear", "Vercel", "Figma", "Airbnb", "Notion", "Shopify", "OpenAI", "Anthropic"];
+  const items = ["Google", "Microsoft", "Amazon", "Apple", "Meta", "OpenAI", "NVIDIA", "Adobe", "Salesforce", "Oracle", "IBM", "Intel", "Cisco", "Atlassian", "ServiceNow", "Stripe", "Shopify", "Figma", "GitHub", "Cloudflare", "Airbnb", "Uber", "Netflix", "LinkedIn", "Datadog", "Snowflake", "MongoDB", "Redis", "Vercel", "Notion"];
   const row = [...items, ...items];
   return (
     <div className="border-y border-white/5 bg-background/40 py-8">
       <div className="mx-auto max-w-6xl px-6">
-        <p className="mb-6 text-center text-xs uppercase tracking-[0.3em] text-muted-foreground/70">Candidates hired at</p>
+        <p className="mb-6 text-center text-xs uppercase tracking-[0.3em] text-muted-foreground/70">Designed for Careers in Top Tech Companies</p>
         <div className="relative overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_15%,black_85%,transparent)]">
           <div className="flex w-max gap-14 animate-marquee">
             {row.map((n, i) => (
