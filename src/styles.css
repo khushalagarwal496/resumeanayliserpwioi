@@ -1,0 +1,176 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-gold: var(--gold);
+  --color-emerald: var(--emerald);
+  --font-display: "Fraunces", ui-serif, Georgia, serif;
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+}
+
+:root {
+  --radius: 0.875rem;
+  /* Deep navy premium palette */
+  --background: oklch(0.16 0.03 250);
+  --foreground: oklch(0.97 0.01 90);
+  --card: oklch(0.20 0.035 250);
+  --card-foreground: oklch(0.97 0.01 90);
+  --popover: oklch(0.20 0.035 250);
+  --popover-foreground: oklch(0.97 0.01 90);
+  --primary: oklch(0.78 0.15 155); /* emerald */
+  --primary-foreground: oklch(0.15 0.03 250);
+  --secondary: oklch(0.25 0.03 250);
+  --secondary-foreground: oklch(0.97 0.01 90);
+  --muted: oklch(0.24 0.025 250);
+  --muted-foreground: oklch(0.72 0.02 250);
+  --accent: oklch(0.82 0.16 88); /* gold */
+  --accent-foreground: oklch(0.15 0.03 250);
+  --destructive: oklch(0.62 0.22 25);
+  --destructive-foreground: oklch(0.97 0.01 90);
+  --border: oklch(0.30 0.03 250 / 60%);
+  --input: oklch(0.28 0.03 250);
+  --ring: oklch(0.78 0.15 155);
+  --gold: oklch(0.82 0.16 88);
+  --emerald: oklch(0.78 0.15 155);
+
+  --gradient-hero: radial-gradient(ellipse at top, oklch(0.28 0.08 200 / 0.6), transparent 60%),
+                   radial-gradient(ellipse at bottom right, oklch(0.35 0.15 155 / 0.35), transparent 55%),
+                   linear-gradient(180deg, oklch(0.14 0.03 250), oklch(0.18 0.04 250));
+  --gradient-gold: linear-gradient(135deg, oklch(0.88 0.15 88), oklch(0.72 0.17 70));
+  --gradient-emerald: linear-gradient(135deg, oklch(0.82 0.15 155), oklch(0.65 0.17 175));
+  --shadow-glow-emerald: 0 20px 60px -20px oklch(0.78 0.18 155 / 0.55);
+  --shadow-glow-gold: 0 20px 60px -20px oklch(0.82 0.18 88 / 0.5);
+  --shadow-card: 0 30px 80px -30px oklch(0.05 0.02 250 / 0.9);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    background: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    font-feature-settings: "ss01", "cv11";
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3 {
+    font-family: var(--font-display);
+    letter-spacing: -0.02em;
+  }
+}
+
+@utility text-gradient-gold {
+  background: var(--gradient-gold);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+@utility text-gradient-emerald {
+  background: var(--gradient-emerald);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+@utility glass {
+  background: oklch(1 0 0 / 0.03);
+  backdrop-filter: blur(20px) saturate(140%);
+  border: 1px solid oklch(1 0 0 / 0.08);
+}
+@utility bg-hero {
+  background: var(--gradient-hero);
+}
+@utility shadow-glow-e {
+  box-shadow: var(--shadow-glow-emerald);
+}
+@utility shadow-glow-g {
+  box-shadow: var(--shadow-glow-gold);
+}
+@utility shadow-premium {
+  box-shadow: var(--shadow-card);
+}
+@utility grid-bg {
+  background-image:
+    linear-gradient(oklch(1 0 0 / 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, oklch(1 0 0 / 0.04) 1px, transparent 1px);
+  background-size: 48px 48px;
+  mask-image: radial-gradient(ellipse at center, black 40%, transparent 75%);
+}
+@utility noise {
+  position: relative;
+  
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.04;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+  }
+}
+
+@keyframes float-slow {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-14px) rotate(1.5deg); }
+}
+@keyframes aurora {
+  0%, 100% { transform: translate3d(0,0,0) scale(1); opacity: 0.55; }
+  50% { transform: translate3d(4%,-3%,0) scale(1.15); opacity: 0.8; }
+}
+@keyframes reveal-up {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+@utility animate-float { animation: float-slow 8s ease-in-out infinite; }
+@utility animate-aurora { animation: aurora 14s ease-in-out infinite; }
+@utility animate-reveal { animation: reveal-up 0.9s cubic-bezier(.2,.7,.2,1) both; }
+@utility animate-marquee { animation: marquee 40s linear infinite; }
+@utility text-shimmer {
+  background: linear-gradient(90deg, oklch(0.97 0.01 90) 0%, oklch(0.82 0.16 88) 30%, oklch(0.78 0.15 155) 55%, oklch(0.97 0.01 90) 80%);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: shimmer 6s linear infinite;
+}
+
