@@ -1,5 +1,6 @@
 import { createServerFn } from '@tanstack/react-start';
 import { GoogleGenAI } from '@google/genai';
+import OpenAI from 'openai';
 
 export interface SectionCheck {
   title: string;
@@ -335,7 +336,7 @@ export const analyzeResumeFn = createServerFn({ method: 'POST' })
         const arrayBuffer = await data.file.arrayBuffer();
         let parser;
         try {
-          const mod = await import('pdf-parse');
+          const mod: any = await import('pdf-parse');
           const PDFParse = mod.PDFParse || mod.default || mod;
           parser = new PDFParse({ data: new Uint8Array(arrayBuffer) });
         } catch (importErr) {
@@ -383,10 +384,26 @@ export const analyzeResumeFn = createServerFn({ method: 'POST' })
         }
       } catch (err: any) {
         console.warn("Gemini API failed:", err?.message || err);
-        // Fallback to local heuristic if AI fails (e.g., due to quota)
+      }
+    }
+
+    if (process.env.OPENAI_API_KEY) {
+      try {
+        console.log("Calling OpenAI API for ATS analysis...");
+        const result = await callOpenAiAts(finalResumeText, data.jdText);
+        if (result) {
+          const wordsInResume = finalResumeText.toLowerCase().match(/\b[a-z0-9+#.-]+\b/g) || [];
+          result.wordCount = wordsInResume.length;
+          result.readTime = Math.max(1, Math.ceil(result.wordCount / 200));
+          result.parsedText = finalResumeText;
+          console.log("OpenAI API success!");
+          return result;
+        }
+      } catch (err: any) {
+        console.warn("OpenAI API failed:", err?.message || err);
       }
     } else {
-      console.log("No GEMINI_API_KEY, using local heuristic.");
+      console.log("No AI API keys configured, using local heuristic.");
     }
 
     return localAnalyzeResume(finalResumeText, data.jdText);
@@ -414,13 +431,13 @@ function createErrorAtsResult(message: string): AtsResult {
     missingKeywords: [],
     priorityKeywords: [],
     formattingMetrics: {
-      fontCheck: { status: 'fail', fontName: 'N/A', feedback: 'Analysis failed.' },
-      marginCheck: { status: 'fail', feedback: 'Analysis failed.' },
-      headingCheck: { status: 'fail', feedback: 'Analysis failed.' },
-      tablesCheck: { status: 'fail', present: false, feedback: 'Analysis failed.' },
-      imagesCheck: { status: 'fail', present: false, feedback: 'Analysis failed.' },
-      iconsCheck: { status: 'fail', present: false, feedback: 'Analysis failed.' },
-      colorsCheck: { status: 'fail', feedback: 'Analysis failed.' }
+      fontCheck: { status: 'warning', fontName: 'N/A', feedback: 'Analysis failed.' },
+      marginCheck: { status: 'warning', feedback: 'Analysis failed.' },
+      headingCheck: { status: 'warning', feedback: 'Analysis failed.' },
+      tablesCheck: { status: 'warning', present: false, feedback: 'Analysis failed.' },
+      imagesCheck: { status: 'warning', present: false, feedback: 'Analysis failed.' },
+      iconsCheck: { status: 'warning', present: false, feedback: 'Analysis failed.' },
+      colorsCheck: { status: 'warning', feedback: 'Analysis failed.' }
     },
     missingSkills: [],
     weakSummaryFix: message,
@@ -507,18 +524,69 @@ interface AtsResult {
 }
 Ensure the JSON is valid and contains no markdown code blocks formatting. Just the JSON.`;
 
-  const response = await ai.models.generateContent({
-    model: 'gemini-2.0-flash',
-    contents: prompt,
-    config: { responseMimeType: 'application/json' }
+  const modelsToTry = ['gemini-2.5-flash', 'gemini-2.0-flash-exp', 'gemini-2.0-flash', 'gemini-1.5-flash-latest', 'gemini-1.5-pro'];
+  for (const modelName of modelsToTry) {
+    try {
+      console.log(`Trying Gemini model: ${modelName}...`);
+      const response = await ai.models.generateContent({
+        model: modelName,
+        contents: prompt,
+        config: { responseMimeType: 'application/json' }
+      });
+
+      const text = response.text;
+      if (text) {
+        console.log(`Successfully generated ATS result with ${modelName}!`);
+        const cleaned = text.trim()
+          .replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/, '')
+          .replace(/[\u0000-\u001F]+/g, (m) => m === '\n' ? '\\n' : m === '\r' ? '\\r' : m === '\t' ? '\\t' : '');
+        return JSON.parse(cleaned) as AtsResult;
+      }
+    } catch (e: any) {
+      console.warn(`Gemini model ${modelName} failed:`, e?.message || e);
+    }
+  }
+  return null;
+}
+
+async function callOpenAiAts(resumeText: string, jdText: string): Promise<AtsResult | null> {
+  const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+  const isGeneralAudit = !jdText || !jdText.trim() || jdText.includes("General Industry Resume Review");
+
+  const prompt = `You are a strict and expert ATS (Applicant Tracking System) parser and recruiter.
+Analyze the following document.
+IMPORTANT: First, determine if the document is actually a resume/CV. If it is a fees structure, a ticket, a receipt, a random article, or just a few words, YOU MUST SCORE IT 0 and explain in the suggestions that it is not a valid resume.
+
+Job Description (if any, otherwise general audit):
+${isGeneralAudit ? "General Industry Best Practices" : jdText}
+
+Resume Text:
+${resumeText}
+
+Output a strictly valid JSON object matching this TypeScript interface structure exactly:
+score (0-100), keywordScore, formatScore, impactScore, matched (string[]), missing (string[]), suggestions (string[]), wordCount (0), readTime (0), contactScore, skillsScore, projectsScore, experienceScore, educationScore, certificationsScore, keywordDensity, matchedKeywords (string[]), missingKeywords (string[]), priorityKeywords (string[]), formattingMetrics (fontCheck, marginCheck, headingCheck, tablesCheck, imagesCheck, iconsCheck, colorsCheck), missingSkills, weakSummaryFix, bulletPointSuggestions, actionVerbsFound, grammarIssues, resumeLengthCheck, readabilityScore, grammarScore, professionalToneScore, jobMatchPercent, atsFriendlyVerdict ('PASS'|'WARNING'|'FAIL'), parsingIssues, fileSizeKb (50), pdfCompatibility, sectionBreakdown (must contain 7 items with title, status, score, feedback for: "Contact Information", "Skills & Keywords", "Projects & Engineering", "Work Experience", "Education", "Certifications", "ATS Layout & Formatting"), strengths, roadmap.`;
+
+  const response = await openai.chat.completions.create({
+    model: 'gpt-4o-mini',
+    messages: [
+      {
+        role: 'system',
+        content: 'You are an expert ATS scanner. You MUST respond with valid JSON matching the requested AtsResult structure.'
+      },
+      {
+        role: 'user',
+        content: prompt
+      }
+    ],
+    response_format: { type: 'json_object' }
   });
 
-  const text = response.text;
+  const text = response.choices[0]?.message?.content;
   if (!text) return null;
   try {
     return JSON.parse(text) as AtsResult;
   } catch (e) {
-    console.error("Failed to parse JSON from Gemini", e);
+    console.error("Failed to parse JSON from OpenAI", e);
     return null;
   }
 }
@@ -534,7 +602,7 @@ export const extractTextFromPdfFn = createServerFn({ method: 'POST' })
       const arrayBuffer = await data.file.arrayBuffer();
       let parser;
       try {
-        const mod = await import('pdf-parse');
+        const mod: any = await import('pdf-parse');
         const PDFParse = mod.PDFParse || mod.default || mod;
         parser = new PDFParse({ data: new Uint8Array(arrayBuffer) });
       } catch (importErr) {
