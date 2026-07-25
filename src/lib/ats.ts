@@ -312,7 +312,7 @@ function localAnalyzeResume(resumeText: string, jdText: string): AtsResult {
   };
 }
 
-import { PDFParse } from 'pdf-parse';
+
 
 export const analyzeResumeFn = createServerFn({ method: 'POST' })
   .validator((formData: FormData) => {
@@ -328,7 +328,15 @@ export const analyzeResumeFn = createServerFn({ method: 'POST' })
     if (data.file && data.file.name) {
       try {
         const arrayBuffer = await data.file.arrayBuffer();
-        const parser = new PDFParse({ data: new Uint8Array(arrayBuffer) });
+        let parser;
+        try {
+          const mod = await import('pdf-parse');
+          const PDFParse = mod.PDFParse || mod.default || mod;
+          parser = new PDFParse({ data: new Uint8Array(arrayBuffer) });
+        } catch (importErr) {
+          console.warn("Failed to import pdf-parse", importErr);
+          throw importErr;
+        }
         const textResult = await parser.getText();
         if (textResult && textResult.text) {
           finalResumeText = textResult.text;
@@ -480,7 +488,7 @@ interface AtsResult {
 Ensure the JSON is valid and contains no markdown code blocks formatting. Just the JSON.`;
 
   const response = await ai.models.generateContent({
-    model: 'gemini-3.6-flash',
+    model: 'gemini-2.5-flash',
     contents: prompt,
     config: { responseMimeType: 'application/json' }
   });
@@ -504,7 +512,15 @@ export const extractTextFromPdfFn = createServerFn({ method: 'POST' })
     
     try {
       const arrayBuffer = await data.file.arrayBuffer();
-      const parser = new PDFParse({ data: new Uint8Array(arrayBuffer) });
+      let parser;
+      try {
+        const mod = await import('pdf-parse');
+        const PDFParse = mod.PDFParse || mod.default || mod;
+        parser = new PDFParse({ data: new Uint8Array(arrayBuffer) });
+      } catch (importErr) {
+        console.warn("Failed to import pdf-parse", importErr);
+        throw importErr;
+      }
       const textResult = await parser.getText();
       return { text: textResult.text || "" };
     } catch (e) {
