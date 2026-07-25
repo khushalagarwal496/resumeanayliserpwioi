@@ -1096,7 +1096,7 @@ function Results({ result }: { result: AtsResult }) {
           <div className="mt-6 p-3.5 rounded-2xl bg-white/5 border border-white/5 text-xs text-muted-foreground flex items-center justify-between">
             <span className="flex items-center gap-2">
               <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-              Job Match Score: <strong className="text-foreground">{result.jobMatchPercent || 85}%</strong>
+              Job Match Score: <strong className="text-foreground">{result.jobMatchPercent ?? 0}%</strong>
             </span>
             <span className="text-[11px] text-muted-foreground">PDF Compatibility: 100%</span>
           </div>
@@ -1110,28 +1110,40 @@ function Results({ result }: { result: AtsResult }) {
         </h3>
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          {/* Font Typography */}
           <div className="rounded-2xl bg-white/5 p-4 border border-white/5">
             <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">Font Typography</div>
-            <div className="text-xs font-bold text-emerald-400 mt-1">✓ Standard Sans-Serif</div>
-            <div className="text-[11px] text-muted-foreground/80 mt-1">Arial / Inter / Helvetica</div>
+            <div className={`text-xs font-bold mt-1 ${result.formattingMetrics?.fontCheck?.status === 'pass' ? 'text-emerald-400' : result.formattingMetrics?.fontCheck?.status === 'warning' ? 'text-yellow-400' : 'text-red-400'}`}>
+              {result.formattingMetrics?.fontCheck?.status === 'pass' ? '✓' : result.formattingMetrics?.fontCheck?.status === 'warning' ? '⚠' : '✗'} {result.formattingMetrics?.fontCheck?.fontName || 'Unknown Font'}
+            </div>
+            <div className="text-[11px] text-muted-foreground/80 mt-1 line-clamp-2">{result.formattingMetrics?.fontCheck?.feedback || 'N/A'}</div>
           </div>
 
+          {/* Margins & Spacing */}
           <div className="rounded-2xl bg-white/5 p-4 border border-white/5">
             <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">Margins & Spacing</div>
-            <div className="text-xs font-bold text-emerald-400 mt-1">✓ 0.75" - 1.0" Standard</div>
-            <div className="text-[11px] text-muted-foreground/80 mt-1">Sufficient whitespace</div>
+            <div className={`text-xs font-bold mt-1 ${result.formattingMetrics?.marginCheck?.status === 'pass' ? 'text-emerald-400' : result.formattingMetrics?.marginCheck?.status === 'warning' ? 'text-yellow-400' : 'text-red-400'}`}>
+              {result.formattingMetrics?.marginCheck?.status === 'pass' ? '✓' : result.formattingMetrics?.marginCheck?.status === 'warning' ? '⚠' : '✗'} {result.formattingMetrics?.marginCheck?.status === 'pass' ? 'Standard Margins' : 'Margin Issues'}
+            </div>
+            <div className="text-[11px] text-muted-foreground/80 mt-1 line-clamp-2">{result.formattingMetrics?.marginCheck?.feedback || 'N/A'}</div>
           </div>
 
+          {/* Tables & Columns */}
           <div className="rounded-2xl bg-white/5 p-4 border border-white/5">
             <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">Tables & Columns</div>
-            <div className="text-xs font-bold text-emerald-400 mt-1">✓ No Complex Tables</div>
-            <div className="text-[11px] text-muted-foreground/80 mt-1">Safe for Workday ATS</div>
+            <div className={`text-xs font-bold mt-1 ${result.formattingMetrics?.tablesCheck?.status === 'pass' ? 'text-emerald-400' : result.formattingMetrics?.tablesCheck?.status === 'warning' ? 'text-yellow-400' : 'text-red-400'}`}>
+              {result.formattingMetrics?.tablesCheck?.status === 'pass' ? '✓' : result.formattingMetrics?.tablesCheck?.status === 'warning' ? '⚠' : '✗'} {result.formattingMetrics?.tablesCheck?.present ? 'Tables Detected' : 'No Complex Tables'}
+            </div>
+            <div className="text-[11px] text-muted-foreground/80 mt-1 line-clamp-2">{result.formattingMetrics?.tablesCheck?.feedback || 'N/A'}</div>
           </div>
 
+          {/* Images & Icons */}
           <div className="rounded-2xl bg-white/5 p-4 border border-white/5">
             <div className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold">Images & Icons</div>
-            <div className="text-xs font-bold text-emerald-400 mt-1">✓ Clean Text Layer</div>
-            <div className="text-[11px] text-muted-foreground/80 mt-1">No graphic blockers</div>
+            <div className={`text-xs font-bold mt-1 ${result.formattingMetrics?.imagesCheck?.status === 'pass' ? 'text-emerald-400' : result.formattingMetrics?.imagesCheck?.status === 'warning' ? 'text-yellow-400' : 'text-red-400'}`}>
+              {result.formattingMetrics?.imagesCheck?.status === 'pass' ? '✓' : result.formattingMetrics?.imagesCheck?.status === 'warning' ? '⚠' : '✗'} {result.formattingMetrics?.imagesCheck?.present ? 'Images Found' : 'Clean Text Layer'}
+            </div>
+            <div className="text-[11px] text-muted-foreground/80 mt-1 line-clamp-2">{result.formattingMetrics?.imagesCheck?.feedback || 'N/A'}</div>
           </div>
         </div>
 
@@ -1139,15 +1151,15 @@ function Results({ result }: { result: AtsResult }) {
         <div className="mt-6 grid grid-cols-1 sm:grid-cols-3 gap-4 border-t border-white/5 pt-6">
           <div className="flex items-center justify-between rounded-xl bg-white/5 px-4 py-3 text-xs">
             <span className="text-muted-foreground">Readability Score:</span>
-            <strong className="text-emerald-400 text-sm font-bold">{result.readabilityScore || 88}/100</strong>
+            <strong className="text-emerald-400 text-sm font-bold">{result.readabilityScore ?? 0}/100</strong>
           </div>
           <div className="flex items-center justify-between rounded-xl bg-white/5 px-4 py-3 text-xs">
             <span className="text-muted-foreground">Grammar & Syntax:</span>
-            <strong className="text-primary text-sm font-bold">{result.grammarScore || 94}/100</strong>
+            <strong className="text-primary text-sm font-bold">{result.grammarScore ?? 0}/100</strong>
           </div>
           <div className="flex items-center justify-between rounded-xl bg-white/5 px-4 py-3 text-xs">
             <span className="text-muted-foreground">Professional Tone:</span>
-            <strong className="text-accent text-sm font-bold">{result.professionalToneScore || 92}/100</strong>
+            <strong className="text-accent text-sm font-bold">{result.professionalToneScore ?? 0}/100</strong>
           </div>
         </div>
       </div>

@@ -111,7 +111,7 @@ function localAnalyzeResume(resumeText: string, jdText: string): AtsResult {
 
     priorityKeywords = uniqueJdKeywords.slice(0, 8);
     keywordScore = uniqueJdKeywords.length > 0
-      ? Math.min(100, Math.round((matched.length / uniqueJdKeywords.length) * 100))
+      ? Math.min(100, Math.round((matched.length / uniqueJdKeywords.length) * 250))
       : 75;
   } else {
     // General ATS Audit
@@ -126,12 +126,17 @@ function localAnalyzeResume(resumeText: string, jdText: string): AtsResult {
   // Section Detectors
   const hasEmail = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/.test(resumeText);
   const hasPhone = /[\+]?[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{3}[-\s\.]?[0-9]{4,6}/.test(resumeText);
-  const hasSummary = /summary|profile|about/i.test(resumeText);
-  const hasExperience = /experience|history|employment|work/i.test(resumeText);
-  const hasEducation = /education|university|college|b\.s|b\.a|btech|degree|cgpa/i.test(resumeText);
-  const hasSkills = /skills|technologies|proficiencies|languages|stack/i.test(resumeText);
-  const hasProjects = /project|projects|built|developed|application/i.test(resumeText);
-  const hasCertifications = /certification|certifications|certified|aws|google|coursera|license/i.test(resumeText);
+  const hasSummary = /\b(summary|profile|about)\b/i.test(resumeText);
+  const hasExperience = /\b(experience|history|employment|work)\b/i.test(resumeText);
+  const hasEducation = /\b(education|university|college|b\.s|b\.a|btech|degree|cgpa)\b/i.test(resumeText);
+  const hasSkills = /\b(skills|technologies|proficiencies|languages|stack)\b/i.test(resumeText);
+  const hasProjects = /\b(project|projects|built|developed|application)\b/i.test(resumeText);
+  const hasCertifications = /\b(certification|certifications|certified|aws|google|coursera|license)\b/i.test(resumeText);
+
+  const coreSectionCount = [hasExperience, hasEducation, hasSkills, hasProjects].filter(Boolean).length;
+  if (coreSectionCount < 2) {
+    return createErrorAtsResult("The provided document does not appear to be a valid resume. Please upload a real resume containing sections like Education, Experience, or Skills.");
+  }
 
   // Section Scores
   const contactScore = (hasEmail && hasPhone) ? 100 : hasEmail ? 60 : 35;
@@ -347,7 +352,21 @@ export const analyzeResumeFn = createServerFn({ method: 'POST' })
     }
 
     if (!finalResumeText || finalResumeText.trim().length === 0) {
-      finalResumeText = "Alex Rivera\nSoftware Engineer\nSkills: React, Node.js, Python, SQL, C++, AWS\nExperience: Built scalable web applications and REST APIs.\nEducation: B.Tech Computer Science";
+      if (data.file) {
+        try {
+          const arrayBuffer = await data.file.arrayBuffer();
+          const textDecoder = new TextDecoder("utf-8");
+          const rawString = textDecoder.decode(arrayBuffer);
+          const textMatches = rawString.match(/[a-zA-Z0-9\s.,;:\-@()/]{4,}/g);
+          finalResumeText = textMatches ? textMatches.join(" ") : rawString;
+        } catch (e) {
+          console.error("Fallback text extraction failed", e);
+        }
+      }
+    }
+
+    if (!finalResumeText || finalResumeText.trim().length < 30) {
+      return createErrorAtsResult("Could not extract sufficient text from the provided resume PDF. Please try pasting the resume text manually.");
     }
 
     if (process.env.GEMINI_API_KEY) {
@@ -363,7 +382,8 @@ export const analyzeResumeFn = createServerFn({ method: 'POST' })
           return result;
         }
       } catch (err: any) {
-        console.warn("Gemini API failed, using local heuristic:", err?.message || err);
+        console.warn("Gemini API failed:", err?.message || err);
+        // Fallback to local heuristic if AI fails (e.g., due to quota)
       }
     } else {
       console.log("No GEMINI_API_KEY, using local heuristic.");
@@ -380,7 +400,7 @@ function createErrorAtsResult(message: string): AtsResult {
     impactScore: 0,
     matched: [],
     missing: [],
-    suggestions: [message, "Please provide a valid Gemini API key with sufficient quota.", "Analysis could not be completed."],
+    suggestions: [message, "Please provide a valid Gemini API key with sufficient quota or paste valid resume text.", "Analysis could not be completed."],
     wordCount: 0,
     readTime: 0,
     contactScore: 0,
@@ -488,7 +508,7 @@ interface AtsResult {
 Ensure the JSON is valid and contains no markdown code blocks formatting. Just the JSON.`;
 
   const response = await ai.models.generateContent({
-    model: 'gemini-2.5-flash',
+    model: 'gemini-2.0-flash',
     contents: prompt,
     config: { responseMimeType: 'application/json' }
   });
