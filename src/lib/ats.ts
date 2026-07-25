@@ -480,12 +480,12 @@ interface AtsResult {
 Ensure the JSON is valid and contains no markdown code blocks formatting. Just the JSON.`;
 
   const response = await ai.models.generateContent({
-    model: 'gemini-2.0-flash',
+    model: 'gemini-3.6-flash',
     contents: prompt,
     config: { responseMimeType: 'application/json' }
   });
 
-  const text = response.text();
+  const text = response.text;
   if (!text) return null;
   try {
     return JSON.parse(text) as AtsResult;
