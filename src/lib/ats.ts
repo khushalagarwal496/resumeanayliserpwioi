@@ -524,7 +524,7 @@ interface AtsResult {
 }
 Ensure the JSON is valid and contains no markdown code blocks formatting. Just the JSON.`;
 
-  const modelsToTry = ['gemini-2.5-flash', 'gemini-2.0-flash-exp', 'gemini-2.0-flash', 'gemini-1.5-flash-latest', 'gemini-1.5-pro'];
+  const modelsToTry = ['gemini-2.5-flash', 'gemini-2.0-flash'];
   for (const modelName of modelsToTry) {
     try {
       console.log(`Trying Gemini model: ${modelName}...`);
@@ -538,8 +538,7 @@ Ensure the JSON is valid and contains no markdown code blocks formatting. Just t
       if (text) {
         console.log(`Successfully generated ATS result with ${modelName}!`);
         const cleaned = text.trim()
-          .replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/, '')
-          .replace(/[\u0000-\u001F]+/g, (m) => m === '\n' ? '\\n' : m === '\r' ? '\\r' : m === '\t' ? '\\t' : '');
+          .replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/, '');
         return JSON.parse(cleaned) as AtsResult;
       }
     } catch (e: any) {
@@ -616,3 +615,247 @@ export const extractTextFromPdfFn = createServerFn({ method: 'POST' })
       return { text: "" };
     }
   });
+
+export const parseResumeForProfileFn = createServerFn({ method: 'POST' })
+  .validator((data: { text: string }) => data)
+  .handler(async ({ data }) => {
+    const text = data.text;
+    if (!text || text.trim().length === 0) return null;
+
+    if (!process.env.GEMINI_API_KEY) {
+      console.warn("No GEMINI_API_KEY configured for parsing profile.");
+      return null;
+    }
+
+    try {
+      const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+      const prompt = `You are an expert AI resume parser. Extract information from the following resume text and format it into a JSON object matching the TypeScript interface below. Make sure to extract all skills, experiences, projects, education details, social links, coding profiles, achievements, and other structured fields accurately.
+
+TypeScript Interface:
+interface ParsedProfile {
+  fullName: string;
+  headline: string;
+  collegeName: string;
+  branch: string;
+  yearSemester: string;
+  graduationYear: string;
+  location: string;
+  email: string;
+  phone: string;
+  linkedin: string;
+  github: string;
+  portfolio: string;
+  summary: string;
+  careerObjective: string;
+  areasOfInterest: string[];
+  skills: {
+    programming: string[];
+    webDev: string[];
+    database: string[];
+    cloud: string[];
+    tools: string[];
+  };
+  projects: {
+    name: string;
+    description: string;
+    tech: string[];
+    duration: string;
+    teamSize: string;
+    role: string;
+    liveUrl?: string;
+    githubUrl?: string;
+  }[];
+  experience: {
+    company: string;
+    role: string;
+    duration: string;
+    responsibilities: string[];
+    tech: string[];
+    certificateUrl?: string;
+  }[];
+  certifications: {
+    name: string;
+    issuer: string;
+    date: string;
+    credentialId?: string;
+    link?: string;
+  }[];
+  education: {
+    college: string;
+    degree: string;
+    branch: string;
+    cgpa: string;
+    startYear: string;
+    endYear: string;
+    school12th: string;
+    score12th: string;
+    school10th: string;
+    score10th: string;
+  };
+  codingProfiles: {
+    leetcode: { username: string; solved: number; rating: number; streak: number; badge: string };
+    codeforces: { username: string; maxRating: number; solved: number; rank: string };
+    codechef: { username: string; stars: string; rating: number };
+    hackerrank: { username: string; badgesCount: number };
+    geeksforgeeks: { username: string; score: number; solved: number };
+  };
+  achievements: { title: string; category: string; description: string; date: string }[];
+  research: { title: string; type: "Paper" | "Patent" | "Journal" | "Conference"; publication: string; date: string; link?: string }[];
+  languages: string[];
+  softSkills: string[];
+  extraActivities: { title: string; organization: string; description: string }[];
+}
+
+Resume Text:
+${text}
+
+Ensure the response is strictly a valid JSON object matching the interface structure. Do not include markdown code block characters.`;
+
+      const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: prompt,
+        config: { responseMimeType: 'application/json' }
+      });
+
+      const responseText = response.text;
+      if (responseText) {
+        const cleaned = responseText.trim()
+          .replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/, '');
+        return JSON.parse(cleaned);
+      }
+    } catch (e) {
+      console.error("Failed to parse resume for profile with Gemini:", e);
+    }
+    return null;
+  });
+
+export const fetchRealTimeJobsFn = createServerFn({ method: 'POST' })
+  .validator((data: { query: string; page?: number }) => data)
+  .handler(async ({ data }) => {
+    const query = data.query || "Software Engineer in India";
+    const apiKey = process.env.RAPIDAPI_KEY || "2fd45bba28msh14978fdbf2479cbp1a0414jsn84401f22c0a5";
+    const apiHost = "jsearch.p.rapidapi.com";
+    
+    try {
+      const url = `https://${apiHost}/search-v2?query=${encodeURIComponent(query)}&page=${data.page || 1}&num_pages=1`;
+      console.log(`Fetching jobs from JSearch API: ${url}`);
+      
+      const response = await fetch(url, {
+        method: "GET",
+        headers: {
+          "x-rapidapi-key": apiKey,
+          "x-rapidapi-host": apiHost
+        }
+      });
+      
+      if (!response.ok) {
+        throw new Error(`JSearch API returned status ${response.status}`);
+      }
+      
+      const result = await response.json();
+      console.log("JSearch API response:", JSON.stringify(result).substring(0, 200));
+      
+      let rawJobs: any[] = [];
+      if (Array.isArray(result.data)) {
+        rawJobs = result.data;
+      } else if (result.data && Array.isArray(result.data.jobs)) {
+        rawJobs = result.data.jobs;
+      } else if (Array.isArray(result.jobs)) {
+        rawJobs = result.jobs;
+      }
+      
+      if (!Array.isArray(rawJobs) || rawJobs.length === 0) {
+        console.error("No valid jobs array found in JSearch response. result.data type:", typeof result.data);
+        return [];
+      }
+      
+      return rawJobs.map((j: any) => formatJSearchJob(j));
+    } catch (e) {
+      console.error("Failed to fetch real-time jobs from JSearch API:", e);
+      return [];
+    }
+  });
+
+function formatJSearchJob(j: any): any {
+  const title = j.job_title || "Software Engineer";
+  const company = j.employer_name || "Tech Company";
+  
+  // Extract skills from description
+  const knownSkills = ["React", "TypeScript", "Node.js", "Python", "C++", "Java", "JavaScript", "SQL", "PostgreSQL", "MongoDB", "AWS", "Docker", "Linux", "Git", "CSS", "HTML", "Golang", "Kubernetes", "Rust", "Swift", "Android", "iOS", "Flutter", "Machine Learning", "AI", "dbt", "BigQuery", "Snowflake", "Spark", "PyTorch", "TensorFlow"];
+  const description = j.job_description || "";
+  const requiredSkills = knownSkills.filter(skill => {
+    const escaped = skill.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
+    return new RegExp(`\\b${escaped}\\b`, 'i').test(description);
+  });
+  
+  // If no skills found, fallback to some default based on title
+  if (requiredSkills.length === 0) {
+    if (/frontend/i.test(title)) requiredSkills.push("React", "JavaScript", "CSS");
+    else if (/backend/i.test(title)) requiredSkills.push("Node.js", "SQL", "Git");
+    else if (/data/i.test(title)) requiredSkills.push("SQL", "Python");
+    else requiredSkills.push("Software Engineering");
+  }
+
+  // Formatting salary
+  let salary = "Competitive";
+  if (j.job_min_salary && j.job_max_salary) {
+    const currency = j.job_salary_currency === "USD" ? "$" : j.job_salary_currency || "";
+    salary = `${currency}${Math.round(j.job_min_salary / 1000)}k - ${currency}${Math.round(j.job_max_salary / 1000)}k`;
+  } else if (j.job_max_salary) {
+    const currency = j.job_salary_currency === "USD" ? "$" : j.job_salary_currency || "";
+    salary = `Up to ${currency}${Math.round(j.job_max_salary / 1000)}k`;
+  }
+
+  // Formatting posted date
+  let posted = "Recent";
+  if (j.job_posted_at_datetime_utc) {
+    try {
+      const diffMs = Date.now() - new Date(j.job_posted_at_datetime_utc).getTime();
+      const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+      posted = diffDays === 0 ? "Today" : diffDays === 1 ? "1 day ago" : `${diffDays} days ago`;
+    } catch {}
+  }
+
+  // Extracting responsibilities
+  let responsibilities: string[] = [];
+  if (j.job_highlights?.Responsibilities && Array.isArray(j.job_highlights.Responsibilities)) {
+    responsibilities = j.job_highlights.Responsibilities;
+  } else {
+    responsibilities = [
+      "Design and implement software applications.",
+      "Collaborate with cross-functional teams to define features.",
+      "Write high-quality, maintainable, and testable code."
+    ];
+  }
+
+  // Logo letter & color
+  const logoLetter = company.charAt(0).toUpperCase();
+  const colors = [
+    "bg-blue-600 text-white shadow-blue-500/20",
+    "bg-indigo-600 text-white shadow-indigo-500/20",
+    "bg-emerald-700 text-white shadow-emerald-500/20",
+    "bg-cyan-500 text-white shadow-cyan-500/20",
+    "bg-amber-600 text-white shadow-amber-500/20",
+    "bg-rose-600 text-white shadow-rose-500/20"
+  ];
+  const colorIndex = Math.abs(company.split("").reduce((acc, char) => acc + char.charCodeAt(0), 0)) % colors.length;
+  const logoBg = colors[colorIndex];
+
+  return {
+    id: j.job_id || String(Math.random()),
+    title,
+    company,
+    logoLetter,
+    logoBg,
+    logoUrl: j.employer_logo || null,
+    location: (j.job_city && j.job_country) ? `${j.job_city}, ${j.job_country}` : j.job_location || "Remote",
+    type: j.job_employment_types?.includes("INTERN") ? "Internship" : j.job_employment_types?.includes("PARTTIME") ? "Part-time" : j.job_employment_types?.includes("CONTRACTOR") ? "Contract" : "Full-time",
+    salary,
+    posted,
+    requiredSkills,
+    description: description.substring(0, 300) + (description.length > 300 ? "..." : ""),
+    responsibilities: responsibilities.slice(0, 4),
+    applyLink: j.job_apply_link || "https://google.com/search?q=" + encodeURIComponent(`${title} at ${company}`)
+  };
+}
+

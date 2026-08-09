@@ -1,7 +1,7 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState, useRef } from "react";
 import { supabase } from "@/lib/supabase";
-import { extractTextFromPdfFn } from "@/lib/ats";
+import { extractTextFromPdfFn, parseResumeForProfileFn } from "@/lib/ats";
 export const Route = createFileRoute("/profile")({
   component: ProfileComponent,
 });
@@ -548,40 +548,178 @@ function ProfileComponent() {
         text = textMatches ? textMatches.join(" ") : rawString;
       }
 
-      const extractedPhone = text.match(/[\+]?[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{3}[-\s\.]?[0-9]{4,6}/)?.[0] || "";
-      const extractedEmail = text.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/)?.[0] || "";
-      const hasLeetcode = text.toLowerCase().includes("leetcode");
-      const hasCodeforces = text.toLowerCase().includes("codeforces");
-      const hasBtech = /b\.?tech|bachelor of technology/i.test(text);
-      const hasTopCollege = /iit|nit|iiit|bits/i.test(text);
+      // Call Gemini parser
+      console.log("Calling Gemini parser for profile autofill...");
+      let parsedData = null;
+      try {
+        parsedData = await parseResumeForProfileFn({ data: { text } });
+      } catch (err) {
+        console.error("Gemini parse failed, using heuristic fallbacks:", err);
+      }
 
-      const knownSkills = ["React", "TypeScript", "Node.js", "Python", "C++", "Java", "JavaScript", "SQL", "PostgreSQL", "MongoDB", "AWS", "Docker", "Linux", "Git", "CSS", "HTML"];
-      const foundSkills = knownSkills.filter(skill => {
-        const escapedSkill = skill.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
-        return new RegExp(`\\b${escapedSkill}\\b`, 'i').test(text) || text.toLowerCase().includes(skill.toLowerCase());
-      });
+      let updatedProfile = { ...profile };
+      if (parsedData) {
+        // Merge basic info
+        updatedProfile = {
+          ...profile,
+          fullName: parsedData.fullName || profile.fullName,
+          headline: parsedData.headline || profile.headline,
+          collegeName: parsedData.collegeName || profile.collegeName,
+          branch: parsedData.branch || profile.branch,
+          yearSemester: parsedData.yearSemester || profile.yearSemester,
+          graduationYear: parsedData.graduationYear || profile.graduationYear,
+          location: parsedData.location || profile.location,
+          phone: parsedData.phone || profile.phone,
+          email: parsedData.email || profile.email,
+          linkedin: parsedData.linkedin || profile.linkedin,
+          github: parsedData.github || profile.github,
+          portfolio: parsedData.portfolio || profile.portfolio,
+          summary: parsedData.summary || profile.summary,
+          careerObjective: parsedData.careerObjective || profile.careerObjective,
+          areasOfInterest: parsedData.areasOfInterest || profile.areasOfInterest || [],
+          
+          skills: {
+            programming: parsedData.skills?.programming || profile.skills?.programming || [],
+            webDev: parsedData.skills?.webDev || profile.skills?.webDev || [],
+            database: parsedData.skills?.database || profile.skills?.database || [],
+            cloud: parsedData.skills?.cloud || profile.skills?.cloud || [],
+            tools: parsedData.skills?.tools || profile.skills?.tools || []
+          },
+          
+          education: {
+            college: parsedData.education?.college || parsedData.collegeName || profile.education?.college || "",
+            degree: parsedData.education?.degree || profile.education?.degree || "",
+            branch: parsedData.education?.branch || parsedData.branch || profile.education?.branch || "",
+            cgpa: parsedData.education?.cgpa || profile.education?.cgpa || "",
+            startYear: parsedData.education?.startYear || profile.education?.startYear || "",
+            endYear: parsedData.education?.endYear || parsedData.education?.endYear || "",
+            school12th: parsedData.education?.school12th || profile.education?.school12th || "",
+            score12th: parsedData.education?.score12th || profile.education?.score12th || "",
+            school10th: parsedData.education?.school10th || profile.education?.school10th || "",
+            score10th: parsedData.education?.score10th || profile.education?.score10th || ""
+          },
+          
+          codingProfiles: {
+            leetcode: {
+              username: parsedData.codingProfiles?.leetcode?.username || profile.codingProfiles?.leetcode?.username || "",
+              solved: Number(parsedData.codingProfiles?.leetcode?.solved || 0),
+              rating: Number(parsedData.codingProfiles?.leetcode?.rating || 0),
+              streak: Number(parsedData.codingProfiles?.leetcode?.streak || 0),
+              badge: parsedData.codingProfiles?.leetcode?.badge || ""
+            },
+            codeforces: {
+              username: parsedData.codingProfiles?.codeforces?.username || profile.codingProfiles?.codeforces?.username || "",
+              maxRating: Number(parsedData.codingProfiles?.codeforces?.maxRating || 0),
+              solved: Number(parsedData.codingProfiles?.codeforces?.solved || 0),
+              rank: parsedData.codingProfiles?.codeforces?.rank || ""
+            },
+            codechef: {
+              username: parsedData.codingProfiles?.codechef?.username || profile.codingProfiles?.codechef?.username || "",
+              stars: parsedData.codingProfiles?.codechef?.stars || "",
+              rating: Number(parsedData.codingProfiles?.codechef?.rating || 0)
+            },
+            hackerrank: {
+              username: parsedData.codingProfiles?.hackerrank?.username || profile.codingProfiles?.hackerrank?.username || "",
+              badgesCount: Number(parsedData.codingProfiles?.hackerrank?.badgesCount || 0)
+            },
+            geeksforgeeks: {
+              username: parsedData.codingProfiles?.geeksforgeeks?.username || profile.codingProfiles?.geeksforgeeks?.username || "",
+              score: Number(parsedData.codingProfiles?.geeksforgeeks?.score || 0),
+              solved: Number(parsedData.codingProfiles?.geeksforgeeks?.solved || 0)
+            }
+          },
+          
+          projects: (parsedData.projects || []).map((p: any, idx: number) => ({
+            id: p.id || `p_extracted_${idx}_${Date.now()}`,
+            name: p.name || "Extracted Project",
+            description: p.description || "",
+            tech: p.tech || [],
+            duration: p.duration || "",
+            teamSize: p.teamSize || "",
+            role: p.role || "",
+            liveUrl: p.liveUrl || "",
+            githubUrl: p.githubUrl || ""
+          })),
+          
+          experience: (parsedData.experience || []).map((exp: any, idx: number) => ({
+            id: exp.id || `exp_extracted_${idx}_${Date.now()}`,
+            company: exp.company || "Extracted Company",
+            role: exp.role || "",
+            duration: exp.duration || "",
+            responsibilities: exp.responsibilities || [],
+            tech: exp.tech || [],
+            certificateUrl: exp.certificateUrl || ""
+          })),
+          
+          certifications: (parsedData.certifications || []).map((c: any, idx: number) => ({
+            id: c.id || `c_extracted_${idx}_${Date.now()}`,
+            name: c.name || "Extracted Certificate",
+            issuer: c.issuer || "",
+            date: c.date || "",
+            credentialId: c.credentialId || "",
+            link: c.link || ""
+          })),
+          
+          achievements: (parsedData.achievements || []).map((a: any) => ({
+            title: a.title || "",
+            category: a.category || "",
+            description: a.description || "",
+            date: a.date || ""
+          })),
+          
+          research: (parsedData.research || []).map((r: any) => ({
+            title: r.title || "",
+            type: r.type || "Paper",
+            publication: r.publication || "",
+            date: r.date || "",
+            link: r.link || ""
+          })),
+          
+          languages: parsedData.languages || profile.languages || [],
+          softSkills: parsedData.softSkills || profile.softSkills || [],
+          
+          extraActivities: (parsedData.extraActivities || []).map((act: any) => ({
+            title: act.title || "",
+            organization: act.organization || "",
+            description: act.description || ""
+          }))
+        };
+      } else {
+        const extractedPhone = text.match(/[\+]?[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{3}[-\s\.]?[0-9]{4,6}/)?.[0] || "";
+        const extractedEmail = text.match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/)?.[0] || "";
+        const hasLeetcode = text.toLowerCase().includes("leetcode");
+        const hasCodeforces = text.toLowerCase().includes("codeforces");
+        const hasBtech = /b\.?tech|bachelor of technology/i.test(text);
+        const hasTopCollege = /iit|nit|iiit|bits/i.test(text);
 
-      const updatedProfile = {
-        ...profile,
-        phone: extractedPhone || profile.phone,
-        email: extractedEmail || profile.email,
-        skills: {
-          ...profile.skills,
-          programming: foundSkills,
-        },
-        education: {
-          ...profile.education,
-          degree: hasBtech ? "B.Tech" : profile.education?.degree,
-          college: hasTopCollege ? "Top Tier Institute" : profile.education?.college,
-        },
-        codingProfiles: {
-          ...profile.codingProfiles,
-          leetcode: { ...profile.codingProfiles?.leetcode, solved: hasLeetcode ? 200 : 0 },
-          codeforces: { ...profile.codingProfiles?.codeforces, solved: hasCodeforces ? 150 : 0 }
-        },
-        experience: /experience|work/i.test(text) ? [{ id: "e1", company: "Extracted Company", role: "SDE Intern", duration: "2024", responsibilities: ["Extracted from resume"], tech: [] }] : profile.experience,
-        projects: /projects|built/i.test(text) ? [{ id: "p1", name: "Extracted Project", description: "Parsed from resume", tech: [], duration: "", teamSize: "", role: "" }] : profile.projects
-      };
+        const knownSkills = ["React", "TypeScript", "Node.js", "Python", "C++", "Java", "JavaScript", "SQL", "PostgreSQL", "MongoDB", "AWS", "Docker", "Linux", "Git", "CSS", "HTML"];
+        const foundSkills = knownSkills.filter(skill => {
+          const escapedSkill = skill.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&');
+          return new RegExp(`\\b${escapedSkill}\\b`, 'i').test(text) || text.toLowerCase().includes(skill.toLowerCase());
+        });
+
+        updatedProfile = {
+          ...profile,
+          phone: extractedPhone || profile.phone,
+          email: extractedEmail || profile.email,
+          skills: {
+            ...profile.skills,
+            programming: foundSkills,
+          },
+          education: {
+            ...profile.education,
+            degree: hasBtech ? "B.Tech" : profile.education?.degree,
+            college: hasTopCollege ? "Top Tier Institute" : profile.education?.college,
+          },
+          codingProfiles: {
+            ...profile.codingProfiles,
+            leetcode: { ...profile.codingProfiles?.leetcode, solved: hasLeetcode ? 200 : 0 },
+            codeforces: { ...profile.codingProfiles?.codeforces, solved: hasCodeforces ? 150 : 0 }
+          },
+          experience: /experience|work/i.test(text) ? [{ id: "e1", company: "Extracted Company", role: "SDE Intern", duration: "2024", responsibilities: ["Extracted from resume"], tech: [] }] : profile.experience,
+          projects: /projects|built/i.test(text) ? [{ id: "p1", name: "Extracted Project", description: "Parsed from resume", tech: [], duration: "", teamSize: "", role: "" }] : profile.projects
+        };
+      }
 
       setProfile(updatedProfile);
       
@@ -833,22 +971,14 @@ function ProfileComponent() {
             <Link to="/" className="text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors">
               ← ATS Analyzer
             </Link>
+            <Link to="/jobs" className="text-xs font-semibold text-muted-foreground hover:text-foreground transition-colors">
+              Jobs
+            </Link>
             {currentUser ? (
               <div className="flex items-center gap-3">
                 <span className="text-xs font-semibold text-foreground hidden sm:inline-block">
                   👤 {currentUser.name}
                 </span>
-                <button
-                  onClick={() => {
-                    const demoWithUser = { ...DEMO_PROFILE, email: currentUser?.email || DEMO_PROFILE.email, avatarUrl: currentUser?.avatarUrl || DEMO_PROFILE.avatarUrl, fullName: currentUser?.name || DEMO_PROFILE.fullName };
-                    const userKey = (currentUser?.email || "").toLowerCase().replace(/[^a-z0-9]/g, "_");
-                    localStorage.setItem(`user_profile_${userKey}`, JSON.stringify(demoWithUser));
-                    window.location.reload();
-                  }}
-                  className="rounded-full border border-emerald-500/50 bg-emerald-500/10 px-4 py-2 text-xs font-medium text-emerald-400 hover:bg-emerald-500/20 transition-colors cursor-pointer"
-                >
-                  🎭 Load Demo Data
-                </button>
                 <button
                   onClick={() => {
                     if (window.confirm("Are you sure you want to delete all profile data? This will reset your profile to empty.")) {
@@ -929,17 +1059,17 @@ function ProfileComponent() {
                 {/* Social Links */}
                 <div className="flex items-center gap-3 mt-4">
                   {profile.github && (
-                    <a href={profile.github} target="_blank" rel="noreferrer" className="glass px-3 py-1.5 rounded-xl border border-white/10 text-xs font-semibold text-foreground hover:bg-white/10 transition">
+                    <a href={profile.github.startsWith('http') ? profile.github : `https://${profile.github}`} target="_blank" rel="noreferrer" className="glass px-3 py-1.5 rounded-xl border border-white/10 text-xs font-semibold text-foreground hover:bg-white/10 transition">
                       🐙 GitHub
                     </a>
                   )}
                   {profile.linkedin && (
-                    <a href={profile.linkedin} target="_blank" rel="noreferrer" className="glass px-3 py-1.5 rounded-xl border border-white/10 text-xs font-semibold text-primary hover:bg-white/10 transition">
+                    <a href={profile.linkedin.startsWith('http') ? profile.linkedin : `https://${profile.linkedin}`} target="_blank" rel="noreferrer" className="glass px-3 py-1.5 rounded-xl border border-white/10 text-xs font-semibold text-primary hover:bg-white/10 transition">
                       💼 LinkedIn
                     </a>
                   )}
                   {profile.portfolio && (
-                    <a href={profile.portfolio} target="_blank" rel="noreferrer" className="glass px-3 py-1.5 rounded-xl border border-white/10 text-xs font-semibold text-emerald-400 hover:bg-white/10 transition">
+                    <a href={profile.portfolio.startsWith('http') ? profile.portfolio : `https://${profile.portfolio}`} target="_blank" rel="noreferrer" className="glass px-3 py-1.5 rounded-xl border border-white/10 text-xs font-semibold text-emerald-400 hover:bg-white/10 transition">
                       🌐 Portfolio Website
                     </a>
                   )}

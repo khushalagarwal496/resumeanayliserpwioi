@@ -169,6 +169,7 @@ function Landing() {
       <Marquee />
       <Features />
       <HowItWorks />
+      <PlatformShowcase />
       <section id="analyzer" className="relative mx-auto max-w-6xl px-5 pb-24 pt-8 sm:px-6">
         <SectionHeading
           eyebrow="Analyzer"
@@ -324,6 +325,201 @@ function Landing() {
       <CTA />
       <Footer />
     </div>
+  );
+}
+
+// ── Scroll Reveal Hook ──────────────────────────────────────────────────────
+function useScrollReveal() {
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add("scroll-revealed");
+            observer.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold: 0.12 }
+    );
+    document.querySelectorAll(".scroll-reveal").forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+  }, []);
+}
+
+// ── Platform Showcase ───────────────────────────────────────────────────────
+function PlatformShowcase() {
+  useScrollReveal();
+
+  const features = [
+    {
+      step: "01",
+      icon: "🎯",
+      title: "ATS Resume Analyzer",
+      subtitle: "Get your ATS score in 12 seconds",
+      description: "Upload your resume or paste text. Our Gemini AI analyzes formatting, keyword density, skills match, and action-impact language — the exact criteria ATS systems and top recruiters use to filter candidates.",
+      bullets: [
+        "Instant ATS Score out of 100",
+        "Missing keyword detection",
+        "Format & structure audit",
+        "Section-wise improvement tips",
+      ],
+      gradient: "from-primary/30 via-primary/5 to-transparent",
+      badge: "Core Feature",
+      badgeColor: "bg-primary/10 text-primary border-primary/20",
+      align: "left",
+      emoji: "📄",
+      link: "#analyzer",
+      isExternal: false,
+    },
+    {
+      step: "02",
+      icon: "👤",
+      title: "Smart Student Profile",
+      subtitle: "One profile, unlimited opportunities",
+      description: "Build a comprehensive ATS-ready profile from your resume in one click. Track your skills, projects, certifications, and coding profiles — all in one place that's ready to share with recruiters.",
+      bullets: [
+        "Auto-fill from resume upload",
+        "88%+ profile completion tracking",
+        "LinkedIn, GitHub & Portfolio links",
+        "ATS readiness score & tips",
+      ],
+      gradient: "from-accent/30 via-accent/5 to-transparent",
+      badge: "New Feature",
+      badgeColor: "bg-accent/10 text-accent border-accent/20",
+      align: "right",
+      emoji: "🏆",
+      link: "/profile",
+      isExternal: false,
+    },
+    {
+      step: "03",
+      icon: "✨",
+      title: "AI Job Recommendations",
+      subtitle: "Real jobs matched to your profile",
+      description: "Our AI reads your profile and skills to fetch real-time job openings from top companies across India and globally. Every recommendation is scored against your resume — so you apply smarter, not harder.",
+      bullets: [
+        "Live jobs from top companies",
+        "Skill-match % for each job",
+        "India, US & global listings",
+        "One-click apply with tracking",
+      ],
+      gradient: "from-emerald-500/30 via-emerald-500/5 to-transparent",
+      badge: "AI Powered",
+      badgeColor: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+      align: "left",
+      emoji: "🚀",
+      link: "/jobs",
+      isExternal: false,
+    },
+  ];
+
+  return (
+    <section id="platform" className="relative mx-auto max-w-6xl px-5 py-24 sm:px-6 overflow-hidden">
+      <style>{`
+        .scroll-reveal { opacity: 0; transform: translateY(40px); transition: opacity 0.7s cubic-bezier(.16,1,.3,1), transform 0.7s cubic-bezier(.16,1,.3,1); }
+        .scroll-reveal.scroll-revealed { opacity: 1; transform: none; }
+        .scroll-reveal-left { opacity: 0; transform: translateX(-40px); transition: opacity 0.7s cubic-bezier(.16,1,.3,1), transform 0.7s cubic-bezier(.16,1,.3,1); }
+        .scroll-reveal-left.scroll-revealed { opacity: 1; transform: none; }
+        .scroll-reveal-right { opacity: 0; transform: translateX(40px); transition: opacity 0.7s cubic-bezier(.16,1,.3,1), transform 0.7s cubic-bezier(.16,1,.3,1); }
+        .scroll-reveal-right.scroll-revealed { opacity: 1; transform: none; }
+      `}</style>
+
+      {/* Background decorations */}
+      <div className="pointer-events-none absolute left-1/2 top-0 h-px w-3/4 -translate-x-1/2 bg-gradient-to-r from-transparent via-white/15 to-transparent" />
+
+      <div className="scroll-reveal text-center mb-16">
+        <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-muted-foreground backdrop-blur mb-4">
+          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary" />
+          Complete Platform Overview
+        </span>
+        <h2 className="font-display text-4xl font-semibold leading-tight sm:text-5xl">
+          Everything you need to{" "}
+          <span className="text-gradient-gold">land your dream job</span>
+        </h2>
+        <p className="mt-4 mx-auto max-w-2xl text-base text-muted-foreground">
+          From resume analysis to AI-powered job matching — Rezonance is the only platform students need to go from application to offer.
+        </p>
+      </div>
+
+      <div className="space-y-24">
+        {features.map((feat, idx) => (
+          <div
+            key={feat.title}
+            className={`scroll-reveal grid gap-10 items-center lg:grid-cols-2 ${feat.align === "right" ? "lg:grid-flow-dense" : ""}`}
+            style={{ transitionDelay: `${idx * 100}ms` }}
+          >
+            {/* Content */}
+            <div className={feat.align === "right" ? "lg:col-start-2" : ""}>
+              <div className="flex items-center gap-3 mb-4">
+                <span className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-[11px] font-semibold ${feat.badgeColor}`}>
+                  {feat.badge}
+                </span>
+                <span className="font-display text-4xl font-bold text-white/10">{feat.step}</span>
+              </div>
+              {feat.link?.startsWith("/") ? (
+                <Link to={feat.link} className="group/title">
+                  <h3 className="font-display text-3xl font-semibold text-foreground sm:text-4xl group-hover/title:text-primary transition-colors cursor-pointer">
+                    {feat.icon} {feat.title} <span className="text-xl opacity-0 group-hover/title:opacity-100 transition-opacity">→</span>
+                  </h3>
+                </Link>
+              ) : (
+                <a href={feat.link} className="group/title">
+                  <h3 className="font-display text-3xl font-semibold text-foreground sm:text-4xl group-hover/title:text-primary transition-colors cursor-pointer">
+                    {feat.icon} {feat.title} <span className="text-xl opacity-0 group-hover/title:opacity-100 transition-opacity">→</span>
+                  </h3>
+                </a>
+              )}
+              <p className="mt-1 text-sm font-medium text-gradient-gold">{feat.subtitle}</p>
+              <p className="mt-4 text-base text-muted-foreground leading-relaxed">{feat.description}</p>
+              <ul className="mt-6 space-y-2.5">
+                {feat.bullets.map((b) => (
+                  <li key={b} className="flex items-center gap-3 text-sm text-foreground/80">
+                    <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-primary/20 text-primary text-[10px] font-bold">✓</span>
+                    {b}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Visual Card */}
+            <div className={feat.align === "right" ? "lg:col-start-1 lg:row-start-1" : ""}>
+              <div className={`relative overflow-hidden rounded-3xl bg-gradient-to-br ${feat.gradient} border border-white/10 p-8 shadow-premium min-h-[280px] flex flex-col justify-between`}>
+                <div className="absolute -top-12 -right-12 h-40 w-40 rounded-full bg-white/5 blur-2xl" />
+                <div className="text-6xl mb-6">{feat.emoji}</div>
+                <div className="space-y-3">
+                  {feat.bullets.map((b, i) => (
+                    <div
+                      key={b}
+                      className="flex items-center gap-3 glass rounded-xl px-4 py-2.5 border border-white/5"
+                      style={{ animationDelay: `${i * 150}ms` }}
+                    >
+                      <span className="h-2 w-2 rounded-full bg-primary shrink-0" />
+                      <span className="text-xs text-foreground/70 font-medium">{b}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Bottom CTA strip */}
+      <div className="scroll-reveal mt-24 text-center">
+        <div className="glass inline-flex flex-col sm:flex-row items-center gap-4 rounded-2xl border border-white/10 px-8 py-5 shadow-premium">
+          <p className="text-sm text-muted-foreground">Ready to experience the full platform?</p>
+          <div className="flex items-center gap-3">
+            <a href="#analyzer" className="rounded-full bg-primary px-5 py-2 text-xs font-semibold text-primary-foreground shadow-glow-e hover:-translate-y-0.5 transition">
+              Try ATS Analyzer →
+            </a>
+            <Link to="/jobs" className="rounded-full border border-white/10 bg-white/5 px-5 py-2 text-xs font-semibold text-foreground hover:bg-white/10 transition">
+              Browse Jobs ✨
+            </Link>
+          </div>
+        </div>
+      </div>
+    </section>
   );
 }
 
@@ -520,6 +716,7 @@ function Nav() {
           <a href="#features" className="hover:text-foreground">Features</a>
           <a href="#analyzer" className="hover:text-foreground">Analyzer</a>
           <a href="#faq" className="hover:text-foreground">FAQ</a>
+          <Link to="/jobs" className="hover:text-foreground">Jobs</Link>
         </nav>
         <div className="flex items-center gap-4">
           {user ? (
@@ -1396,6 +1593,52 @@ function Results({ result }: { result: AtsResult }) {
           </ul>
         </div>
       </div>
+
+      {/* ── AI Job Recommendations Strip ─────────────────────────── */}
+      <div className="glass relative overflow-hidden rounded-3xl border border-emerald-500/20 p-8 shadow-premium bg-gradient-to-br from-emerald-500/5 via-transparent to-primary/5">
+        <div className="absolute -right-20 -top-20 h-52 w-52 rounded-full bg-emerald-500/10 blur-3xl pointer-events-none" />
+        <div className="absolute -left-10 -bottom-10 h-40 w-40 rounded-full bg-primary/10 blur-2xl pointer-events-none" />
+        <div className="relative flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-3 py-1 text-[11px] font-semibold text-emerald-400">
+                ✨ AI Powered
+              </span>
+              <span className="text-xs text-muted-foreground">New</span>
+            </div>
+            <h3 className="font-display text-2xl font-semibold text-foreground">
+              🚀 AI Job Recommendations
+            </h3>
+            <p className="mt-2 max-w-lg text-sm text-muted-foreground leading-relaxed">
+              Your resume scored <strong className="text-foreground">{result.score}/100</strong>. Based on your skills and keywords, we've found real job openings from top companies in India that match your profile — with live match percentages!
+            </p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              {(result.matched || []).slice(0, 5).map((skill) => (
+                <span key={skill} className="rounded-full bg-primary/10 border border-primary/20 px-3 py-1 text-[11px] font-medium text-primary">
+                  {skill}
+                </span>
+              ))}
+              {(result.matched?.length || 0) > 5 && (
+                <span className="rounded-full bg-white/5 border border-white/10 px-3 py-1 text-[11px] text-muted-foreground">
+                  +{result.matched.length - 5} more skills
+                </span>
+              )}
+            </div>
+          </div>
+          <div className="flex flex-col gap-3 shrink-0">
+            <Link
+              to="/jobs"
+              className="group relative inline-flex items-center gap-2 overflow-hidden rounded-full bg-emerald-500 px-7 py-3.5 text-sm font-semibold text-white shadow-lg hover:-translate-y-0.5 transition"
+            >
+              <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent transition-transform duration-700 group-hover:translate-x-full" />
+              <span className="relative">View Matched Jobs</span>
+              <span aria-hidden className="relative transition-transform group-hover:translate-x-1">→</span>
+            </Link>
+            <p className="text-center text-[10px] text-muted-foreground">Live jobs · Updated today</p>
+          </div>
+        </div>
+      </div>
+
     </div>
   );
 }
