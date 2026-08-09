@@ -217,7 +217,7 @@ function JobsComponent() {
 
   // Debounced search query triggers API fetch
   useEffect(() => {
-    let queryToFetch = "Software Engineer in India";
+    let queryToFetch = "Fresher Jobs in India";
     
     if (searchQuery.trim()) {
       queryToFetch = searchQuery.trim();
@@ -227,24 +227,28 @@ function JobsComponent() {
       let skills = "";
       
       if (userProfile.skills) {
-        // Flatten skills and take top 2
-        const allSkills = Object.values(userProfile.skills).flat().filter(Boolean);
+        // Flatten skills and take top 2 (filter out empty strings)
+        const allSkills = Object.values(userProfile.skills).flat().filter((s): s is string => typeof s === 'string' && s.trim().length > 0);
         if (allSkills.length > 0) {
           skills = allSkills.slice(0, 2).join(" OR ");
         }
       }
       
-      let keyword = "";
-      if (role && skills) {
-        // Keep role broad (first 1-2 words) and combine with skills using OR
-        const shortRole = role.split(" ").slice(0, 2).join(" ");
-        keyword = `${shortRole} OR ${skills}`;
+      if (!role && !skills) {
+        // Profile exists but is empty — show general fresher jobs
+        queryToFetch = "Fresher Jobs in India";
       } else {
-        keyword = role || skills || "Software Engineer";
+        let keyword = "";
+        if (role && skills) {
+          const shortRole = role.split(" ").slice(0, 2).join(" ");
+          keyword = `${shortRole} OR ${skills}`;
+        } else {
+          keyword = role || skills;
+        }
+        queryToFetch = `${keyword} in India`;
       }
-      queryToFetch = `${keyword} in India`;
     } else {
-      queryToFetch = "Software Engineer in India";
+      queryToFetch = "Fresher Jobs in India";
     }
 
     const delayDebounceFn = setTimeout(() => {
@@ -315,30 +319,31 @@ function JobsComponent() {
   });
 
   // Calculate display keyword
-  let currentSearchKeyword = "Software Engineer in India";
+  let currentSearchKeyword = "Fresher Jobs in India";
   if (searchQuery.trim()) {
     currentSearchKeyword = searchQuery.trim();
   } else if (userProfile) {
     const role = userProfile.personalInfo?.title || userProfile.experience?.[0]?.title || userProfile.experience?.[0]?.role || "";
     let skills = "";
     if (userProfile.skills) {
-      const allSkills = Object.values(userProfile.skills).flat().filter(Boolean);
+      const allSkills = Object.values(userProfile.skills).flat().filter((s): s is string => typeof s === 'string' && s.trim().length > 0);
       if (allSkills.length > 0) {
-        // Join top 2-3 skills with OR to get a variety of job domains
         skills = allSkills.slice(0, 2).join(" OR ");
       }
     }
-    
-    let keyword = "";
-    if (role && skills) {
-      // Keep role broad (first 1-2 words) and combine with skills using OR
-      const shortRole = role.split(" ").slice(0, 2).join(" ");
-      keyword = `${shortRole} OR ${skills}`;
+
+    if (!role && !skills) {
+      currentSearchKeyword = "Fresher Jobs in India";
     } else {
-      keyword = role || skills || "Software Engineer";
+      let keyword = "";
+      if (role && skills) {
+        const shortRole = role.split(" ").slice(0, 2).join(" ");
+        keyword = `${shortRole} OR ${skills}`;
+      } else {
+        keyword = role || skills;
+      }
+      currentSearchKeyword = `${keyword} in India`;
     }
-    
-    currentSearchKeyword = `${keyword} in India`;
   }
 
   return (
@@ -351,7 +356,7 @@ function JobsComponent() {
       <header className="sticky top-0 z-40 border-b border-white/5 bg-background/60 backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
           <Link to="/" className="flex items-center gap-2 font-display text-xl font-semibold">
-            <span className="grid h-8 w-8 place-items-center rounded-lg bg-gradient-to-br from-primary to-accent text-primary-foreground shadow-glow-e font-bold">R</span>
+            <img src="/rezonance-logo.png" alt="Rezonance Logo" className="h-8 w-8 rounded-lg shadow-glow-e object-cover" />
             Rezonance <span className="text-xs text-primary font-bold px-2 py-0.5 rounded-full bg-primary/10 border border-primary/20">STUDENT ATS PORTAL</span>
           </Link>
           <nav className="hidden items-center gap-8 text-sm text-muted-foreground md:flex">

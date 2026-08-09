@@ -964,7 +964,7 @@ function ProfileComponent() {
       <header className="sticky top-0 z-40 border-b border-white/5 bg-background/60 backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
           <Link to="/" className="flex items-center gap-2 font-display text-xl font-semibold">
-            <span className="grid h-8 w-8 place-items-center rounded-lg bg-gradient-to-br from-primary to-accent text-primary-foreground shadow-glow-e font-bold">R</span>
+            <img src="/rezonance-logo.png" alt="Rezonance Logo" className="h-8 w-8 rounded-lg shadow-glow-e object-cover" />
             Rezonance <span className="text-xs text-primary font-bold px-2 py-0.5 rounded-full bg-primary/10 border border-primary/20">STUDENT ATS PORTAL</span>
           </Link>
           <div className="flex items-center gap-4">

@@ -709,7 +709,7 @@ function Nav() {
     <header className="sticky top-0 z-40 border-b border-white/5 bg-background/60 backdrop-blur-xl">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
         <a href="#" className="flex items-center gap-2 font-display text-xl font-semibold">
-          <span className="grid h-8 w-8 place-items-center rounded-lg bg-gradient-to-br from-primary to-accent text-primary-foreground shadow-glow-e font-bold">R</span>
+          <img src="/rezonance-logo.png" alt="Rezonance Logo" className="h-8 w-8 rounded-lg shadow-glow-e object-cover" />
           Rezonance
         </a>
         <nav className="hidden items-center gap-8 text-sm text-muted-foreground md:flex">
@@ -1701,7 +1701,7 @@ function Footer() {
       <div className="mx-auto grid max-w-6xl gap-10 px-6 py-16 md:grid-cols-[1.2fr_1fr_1fr]">
         <div>
           <div className="flex items-center gap-2 font-display text-xl font-semibold">
-            <span className="grid h-8 w-8 place-items-center rounded-lg bg-gradient-to-br from-primary to-accent text-primary-foreground">R</span>
+            <img src="/rezonance-logo.png" alt="Rezonance Logo" className="h-8 w-8 rounded-lg object-cover" />
             Rezonance
           </div>
           <p className="mt-4 max-w-sm text-sm text-muted-foreground">
