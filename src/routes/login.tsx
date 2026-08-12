@@ -68,6 +68,18 @@ function LoginComponent() {
     }
   };
 
+  const handleGuestLogin = () => {
+    const guestSession = {
+      email: "guest.candidate@rezonance.ai",
+      name: "Demo Candidate",
+      avatarUrl: "https://ui-avatars.com/api/?name=Demo+Candidate&background=047857&color=fff",
+      role: "Software Engineer",
+      id: "guest-demo-id"
+    };
+    localStorage.setItem("user_session", JSON.stringify(guestSession));
+    navigate({ to: "/profile" });
+  };
+
   return (
     <main className="min-h-screen bg-background text-foreground flex items-center justify-center p-4 sm:p-6 relative overflow-hidden">
       {/* Background Lighting Effects */}
@@ -118,9 +130,17 @@ function LoginComponent() {
                 <span>{loading ? "Opening Google Sign In..." : "Sign in with Google"}</span>
               </button>
               
+              <button
+                type="button"
+                onClick={handleGuestLogin}
+                className="w-full mt-4 group relative inline-flex items-center justify-center gap-2 overflow-hidden rounded-full bg-white/5 hover:bg-white/10 text-foreground border border-white/10 py-4 px-6 text-sm font-semibold transition-all hover:-translate-y-0.5 active:translate-y-0 cursor-pointer"
+              >
+                <span>👤 Sign in as Guest (Demo Mode)</span>
+              </button>
+
               <div className="mt-4 text-center">
                 <span className="text-[11px] text-muted-foreground/60 flex items-center justify-center gap-1">
-                  🔒 Fast & Secure 1-Click Google Authentication
+                  🔒 Fast & Secure 1-Click Google Authentication or Instant Guest Bypass
                 </span>
               </div>
             </div>
