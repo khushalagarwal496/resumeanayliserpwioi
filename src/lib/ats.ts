@@ -374,18 +374,11 @@ export const analyzeResumeFn = createServerFn({ method: 'POST' })
     if (data.file && data.file.name) {
       try {
         const arrayBuffer = await data.file.arrayBuffer();
-        let parser;
-        try {
-          const mod: any = await import('pdf-parse');
-          const PDFParse = mod.PDFParse || mod.default || mod;
-          parser = new PDFParse({ data: new Uint8Array(arrayBuffer) });
-        } catch (importErr) {
-          console.warn("Failed to import pdf-parse", importErr);
-          throw importErr;
-        }
-        const textResult = await parser.getText();
-        if (textResult && textResult.text) {
-          finalResumeText = textResult.text;
+        const { getDocumentProxy, extractText } = await import('unpdf');
+        const pdf = await getDocumentProxy(new Uint8Array(arrayBuffer));
+        const { text } = await extractText(pdf, { mergePages: true });
+        if (text) {
+          finalResumeText = text;
         }
       } catch (err) {
         console.error("Failed to parse PDF with pdf-parse", err);
@@ -639,17 +632,10 @@ export const extractTextFromPdfFn = createServerFn({ method: 'POST' })
     
     try {
       const arrayBuffer = await data.file.arrayBuffer();
-      let parser;
-      try {
-        const mod: any = await import('pdf-parse');
-        const PDFParse = mod.PDFParse || mod.default || mod;
-        parser = new PDFParse({ data: new Uint8Array(arrayBuffer) });
-      } catch (importErr) {
-        console.warn("Failed to import pdf-parse", importErr);
-        throw importErr;
-      }
-      const textResult = await parser.getText();
-      return { text: textResult.text || "" };
+      const { getDocumentProxy, extractText } = await import('unpdf');
+      const pdf = await getDocumentProxy(new Uint8Array(arrayBuffer));
+      const { text } = await extractText(pdf, { mergePages: true });
+      return { text: text || "" };
     } catch (e) {
       console.error("PDF Parse error", e);
       return { text: "" };
