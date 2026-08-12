@@ -19,6 +19,12 @@ import {
 } from "lucide-react";
 
 export const Route = createFileRoute("/jobs")({
+  validateSearch: (search: Record<string, unknown>) => {
+    return {
+      search: (search.search as string) || undefined,
+      skills: (search.skills as string) || undefined,
+    };
+  },
   component: JobsComponent,
 });
 
@@ -155,10 +161,11 @@ const JOBS_DATA: Job[] = [
 ];
 
 function JobsComponent() {
+  const { search, skills } = Route.useSearch();
   const [currentUser, setCurrentUser] = useState<{ email: string; name: string } | null>(null);
   const [userProfile, setUserProfile] = useState<any>(null);
   
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState(search || skills || "");
   const [selectedType, setSelectedType] = useState<string>("All");
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
   const [appliedJobs, setAppliedJobs] = useState<string[]>([]);
@@ -308,10 +315,21 @@ function JobsComponent() {
 
   // Filter jobs
   const filteredJobs = jobs.filter(job => {
-    const matchesSearch = 
-      job.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      job.company.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      job.requiredSkills.some(s => s.toLowerCase().includes(searchQuery.toLowerCase()));
+    let matchesSearch = true;
+    if (searchQuery.trim()) {
+      const keywords = searchQuery
+        .split(/\b(?:OR|AND)\b|[,|]/i)
+        .map(k => k.trim().toLowerCase())
+        .filter(k => k.length > 0);
+      
+      if (keywords.length > 0) {
+        matchesSearch = keywords.some(keyword => 
+          job.title.toLowerCase().includes(keyword) ||
+          job.company.toLowerCase().includes(keyword) ||
+          job.requiredSkills.some(s => s.toLowerCase().includes(keyword))
+        );
+      }
+    }
       
     const matchesType = selectedType === "All" || job.type === selectedType;
     

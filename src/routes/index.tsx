@@ -264,7 +264,7 @@ function Landing() {
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
               </div>
-              <h3 className="font-display text-2xl font-bold text-foreground">Gemini AI is analyzing your resume...</h3>
+              <h3 className="font-display text-2xl font-bold text-foreground">AI is analyzing your resume...</h3>
               <p className="text-muted-foreground mt-2 max-w-md mx-auto text-sm">Extracting text, analyzing skills, formatting impact, and evaluating ATS compatibility. Please wait a few seconds...</p>
             </div>
           ) : result ? (
@@ -357,7 +357,7 @@ function PlatformShowcase() {
       icon: "🎯",
       title: "ATS Resume Analyzer",
       subtitle: "Get your ATS score in 12 seconds",
-      description: "Upload your resume or paste text. Our Gemini AI analyzes formatting, keyword density, skills match, and action-impact language — the exact criteria ATS systems and top recruiters use to filter candidates.",
+      description: "Upload your resume or paste text. Our AI analyzes formatting, keyword density, skills match, and action-impact language — the exact criteria ATS systems and top recruiters use to filter candidates.",
       bullets: [
         "Instant ATS Score out of 100",
         "Missing keyword detection",
@@ -1628,6 +1628,7 @@ function Results({ result }: { result: AtsResult }) {
           <div className="flex flex-col gap-3 shrink-0">
             <Link
               to="/jobs"
+              search={{ skills: (result.matched || []).slice(0, 3).join(" OR ") || undefined }}
               className="group relative inline-flex items-center gap-2 overflow-hidden rounded-full bg-emerald-500 px-7 py-3.5 text-sm font-semibold text-white shadow-lg hover:-translate-y-0.5 transition"
             >
               <span className="absolute inset-0 -translate-x-full bg-gradient-to-r from-transparent via-white/20 to-transparent transition-transform duration-700 group-hover:translate-x-full" />

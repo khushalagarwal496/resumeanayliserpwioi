@@ -2,6 +2,46 @@ import { createServerFn } from '@tanstack/react-start';
 import { GoogleGenAI } from '@google/genai';
 import OpenAI from 'openai';
 
+function escapeControlChars(jsonString: string): string {
+  let result = '';
+  let inString = false;
+  let escaped = false;
+  for (let i = 0; i < jsonString.length; i++) {
+    const char = jsonString[i];
+    if (inString) {
+      if (escaped) {
+        result += char;
+        escaped = false;
+      } else if (char === '\\') {
+        result += char;
+        escaped = true;
+      } else if (char === '"') {
+        result += char;
+        inString = false;
+      } else {
+        const code = char.charCodeAt(0);
+        if (code === 10) { // \n
+          result += '\\n';
+        } else if (code === 13) { // \r
+          result += '\\r';
+        } else if (code === 9) { // \t
+          result += '\\t';
+        } else if (code < 32) {
+          result += ' ';
+        } else {
+          result += char;
+        }
+      }
+    } else {
+      if (char === '"') {
+        inString = true;
+      }
+      result += char;
+    }
+  }
+  return result;
+}
+
 export interface SectionCheck {
   title: string;
   status: 'pass' | 'warning' | 'fail';
@@ -524,7 +564,7 @@ interface AtsResult {
 }
 Ensure the JSON is valid and contains no markdown code blocks formatting. Just the JSON.`;
 
-  const modelsToTry = ['gemini-2.5-flash', 'gemini-2.0-flash'];
+  const modelsToTry = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
   for (const modelName of modelsToTry) {
     try {
       console.log(`Trying Gemini model: ${modelName}...`);
@@ -539,7 +579,7 @@ Ensure the JSON is valid and contains no markdown code blocks formatting. Just t
         console.log(`Successfully generated ATS result with ${modelName}!`);
         const cleaned = text.trim()
           .replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/, '');
-        return JSON.parse(cleaned) as AtsResult;
+        return JSON.parse(escapeControlChars(cleaned)) as AtsResult;
       }
     } catch (e: any) {
       console.warn(`Gemini model ${modelName} failed:`, e?.message || e);
@@ -583,7 +623,7 @@ score (0-100), keywordScore, formatScore, impactScore, matched (string[]), missi
   const text = response.choices[0]?.message?.content;
   if (!text) return null;
   try {
-    return JSON.parse(text) as AtsResult;
+    return JSON.parse(escapeControlChars(text)) as AtsResult;
   } catch (e) {
     console.error("Failed to parse JSON from OpenAI", e);
     return null;
@@ -711,17 +751,26 @@ ${text}
 
 Ensure the response is strictly a valid JSON object matching the interface structure. Do not include markdown code block characters.`;
 
-      const response = await ai.models.generateContent({
-        model: 'gemini-2.5-flash',
-        contents: prompt,
-        config: { responseMimeType: 'application/json' }
-      });
+      const modelsToTry = ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash'];
+      for (const modelName of modelsToTry) {
+        try {
+          console.log(`Trying Gemini model for profile parsing: ${modelName}...`);
+          const response = await ai.models.generateContent({
+            model: modelName,
+            contents: prompt,
+            config: { responseMimeType: 'application/json' }
+          });
 
-      const responseText = response.text;
-      if (responseText) {
-        const cleaned = responseText.trim()
-          .replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/, '');
-        return JSON.parse(cleaned);
+          const responseText = response.text;
+          if (responseText) {
+            console.log(`Successfully parsed profile with model: ${modelName}!`);
+            const cleaned = responseText.trim()
+              .replace(/^```json\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/, '');
+            return JSON.parse(escapeControlChars(cleaned));
+          }
+        } catch (e: any) {
+          console.warn(`Gemini model ${modelName} failed for profile parse:`, e?.message || e);
+        }
       }
     } catch (e) {
       console.error("Failed to parse resume for profile with Gemini:", e);
